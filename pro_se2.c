@@ -20,31 +20,31 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 int buses_in_tunnel = 0;
-char current_direction = 0; 
+char current_direction = 0;
 int waiting_X = 0;
 int waiting_Y = 0;
 
 
 void sleep_random() {
-    usleep((rand() % 500 + 1000) * 1000);
+    usleep((rand() % 500 + 1000) * 1000); 
 }
 
 
-void entrer_tunnel(char direction) {
+void entrer_tunnel(char starting) {
     pthread_mutex_lock(&mutex);
 
-    if (direction == 'X') waiting_X++;
+    if (starting == 'X') waiting_X++;
     else waiting_Y++;
 
-    while ((current_direction != 0 && current_direction != direction) ||
-           (buses_in_tunnel == 0 && ((direction == 'X' && waiting_Y > 0) || (direction == 'Y' && waiting_X > 0)))) {
+    while ((current_direction != 0 && current_direction != starting) ||
+           (buses_in_tunnel == 0 && ((starting == 'X' && waiting_Y > 0) || (starting == 'Y' && waiting_X > 0)))) {
         pthread_cond_wait(&cond, &mutex);
     }
 
-    if (direction == 'X') waiting_X--;
+    if (starting == 'X') waiting_X--;
     else waiting_Y--;
 
-    current_direction = direction;
+    current_direction = starting;
     buses_in_tunnel++;
 
     pthread_mutex_unlock(&mutex);
@@ -67,28 +67,28 @@ void sortir_tunnel() {
 void* bus_thread(void* arg) {
     BusInfo* info = (BusInfo*)arg;
     int id = info->id;
-    char ville_origine = info->ville;
-    char direction = ville_origine;
+    char ville_origine = info->ville; 
+    char starting = ville_origine; 
     free(info); 
 
     for (int i = 1; i <= NB_TRAJETS; i++) {
         
-        entrer_tunnel(direction);
-        printf("Bus %d de %c : %c -> %c (Trajet %d)\n", id, ville_origine, direction, direction == 'X' ? 'Y' : 'X', i);
+        entrer_tunnel(starting); 
+        printf("Bus %d de %c : %c -> %c (Trajet %d)\n", id, ville_origine, starting, starting == 'X' ? 'Y' : 'X', i);
         fflush(stdout);
         sleep_random();
         sortir_tunnel();
 
         
-        direction = (direction == 'X') ? 'Y' : 'X';
-        entrer_tunnel(direction);
-        printf("Bus %d de %c : %c -> %c (Trajet %d)\n", id, ville_origine, direction, direction == 'X' ? 'Y' : 'X', i);
+        starting = (starting == 'X') ? 'Y' : 'X';
+        entrer_tunnel(starting);
+        printf("Bus %d de %c : %c -> %c (Trajet %d)\n", id, ville_origine, starting, starting == 'X' ? 'Y' : 'X', i);
         fflush(stdout);
         sleep_random();
         sortir_tunnel();
 
      
-        direction = (direction == 'X') ? 'Y' : 'X';
+        starting = (starting == 'X') ? 'Y' : 'X';
     }
 
     return NULL;
